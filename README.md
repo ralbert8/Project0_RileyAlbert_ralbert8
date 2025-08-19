@@ -19,3 +19,25 @@ This package contains two main scripts.
 | `tb_openLoop_noAccel.py` | Drives the robot at a constant velocity over a fixed duration. |
 
 ---
+
+## 🎯 Goals
+
+- Demonstrate basic ROS2 publisher-subscriber communication.
+- Sumulate robot motion with `/cmd_vel` and read `/odom`
+- Plot position vs. time to visualize open-loop behavior
+
+---
+
+## 🧰 Dependencies
+
+Ensure you have the followign installed:
+
+- ROS2 Galactic
+- `turtlebot3_gazebo`
+- `matplotlib`
+- Python 3
+
+  Install `matplotlib` if not already available:
+
+  ```bash
+  pip install matplotlib
