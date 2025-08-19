@@ -37,7 +37,14 @@ Ensure you have the followign installed:
 - `matplotlib`
 - Python 3
 
-  Install `matplotlib` if not already available:
+Install `matplotlib` if not already available:
 
-  ```bash
-  pip install matplotlib
+```bash
+pip install matplotlib
+```
+
+---
+
+## 🎥 Execution
+- [Trapezoidal Velocity Profile](https://youtu.be/fspuHoJneTA)
+- [Constant Velocity](https://youtu.be/tJnnPI0ypBI)
