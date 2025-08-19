@@ -4,97 +4,143 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 import matplotlib.pyplot as plt
 
+
+
 class openLoop(Node):
-    # Initialize tb_openLoop Node
+
+    """
+    ROS2 node that performs open-loop control by driving a robot at a contstant velocity for a certain distance and time.
+    Records and plots position vs. time.
+    """
+
+
+    
     def __init__(self):
+
+        """
+        Initializes ROS2 node, sets up publishers, subscribers, timers, and internal state.
+        """
+
+        # Inherit Node capabilities
         super().__init__('tb_openLoop')
 
-        # Velocity Command Publisher
+        # Publisher to send velocity commands
         self.velocity_publisher = self.create_publisher(Twist, '/cmd_vel', 100)
 
-        # Odometry Data Subscriber
+        # Subscriber to read odometry data
         self.create_subscription(Odometry, '/odom', self.odometry_cb, 100)
 
-        # Define Rate for Publishing Velocity Commands
+        # Timer to call move function
         self.timer = self.create_timer(0.01, self.move)
 
-        # Create a Twist Message to Store Velocity Commands
+        # Twist message to store velocity command
         self.vel_msg = Twist()
 
-        # Initialize Pose vs. Time Data
+        # Initialize data collection for plotting
         self.positions = []
         self.times = []
         self.start_time = None
         self.current_position = 0.0
 
-        # Define Variables for Movement
-        self.total_distance = 5.0  # [m]
-        self.total_time = 10.0  # [s]
+        # Movement configuration
+        self.total_distance = 5.0
+        self.total_time = 10.0
 
-    # Define Odometry Callback Function for Storing Pose vs. Time Data
+
+    
     def odometry_cb(self, data):
-        # Gathering One-Dimensional Pose Data in X Direction
+
+        """
+        Callback for odometry subscriber. Records x-position and elapsed time.
+
+        Parameters:
+            data (nav.msgs.msg.Odometry): Received odometry message.
+        """
+        
+        # Extract x-position of robot
         self.current_position = data.pose.pose.position.x
 
         if self.start_time is not None:
-            # Get Elapsed Simulation Time
+            
+            # Get elapsed time
             elapsed_time = self.get_clock().now().seconds_nanoseconds()[0] - self.start_time
             
-            # Append Current Pose Data
+            # Store pose and time information
             self.positions.append(self.current_position)
-
-            # Append Current Time Data
             self.times.append(elapsed_time)
 
-    # Define Move Function
+
+    
     def move(self):
 
-        # Calculate the Velocity
+        """
+        Sends constant velocity commands to the robot and stops after total time is reached.
+        Triggers data plotting at end of run.
+        """
+
+        # Calculate constant velocity
         velocity = self.total_distance / self.total_time
 
-        # Start Timing for Simulation
+        # Get elapsed time
         elapsed_time = self.get_clock().now().seconds_nanoseconds()[0] - self.start_time
 
-        # Set Linear Velocity in X Direction and Restrict Rotation Around Z
+        # Set robot velocity
         self.vel_msg.linear.x = velocity
         self.vel_msg.angular.z = 0.0 
 
-        # Publish Velocity Command
+        # Publish velocity command
         self.velocity_publisher.publish(self.vel_msg)
 
-        # Stop Robot and Plot Pose vs. Time at Simulation End
+        # Stop robot when time is reached
         if elapsed_time >= self.total_time:
             self.stop()
             self.plot_pose()
             rclpy.shutdown()
 
-    # Define Function to Stop Robot
+
+    
     def stop(self):
-        # Set Linear Velocity in X Direction to Zero and Publish
+
+        """
+        Stops robot by setting velocity to zero.
+        """
+        
         self.vel_msg.linear.x = 0.0
         self.velocity_publisher.publish(self.vel_msg)
 
-    # Define Function to Plot Pose vs. Time
+
+    
     def plot_pose(self):
-        # Plot Time on X and Pose on Y
+
+        """
+        Plots robot x-position over time using collected odometry data.
+        """
+       
         plt.plot(self.times, self.positions)
 
-        # Set Axis Bounds Using Total Time and Distance
-        plt.xlim(0, self.total_time)  # Time from 0 to total_time seconds
-        plt.ylim(0, self.total_distance)  # Position from 0 to total_distance meters
+        plt.xlim(0, self.total_time)
+        plt.ylim(0, self.total_distance)
 
-        # Set Plot Visuals
         plt.xlabel('Time [s]')
         plt.ylabel('Position [m]')
         plt.title('Robot Pose vs. Time')
         plt.grid(True)
         plt.show()
 
+
+
 def main(args=None):
+
+    """
+    Initializes ROS client library, created node, and spins.
+    """
+    
     rclpy.init(args=args)
     node = openLoop()
     node.start_time = node.get_clock().now().seconds_nanoseconds()[0]
     rclpy.spin(node)
+
+
 
 if __name__ == '__main__':
     main()
