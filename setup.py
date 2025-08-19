@@ -14,9 +14,9 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='ralbert',
-    maintainer_email='ralbert@todo.todo',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer_email='rileyalbert00@gmail.com',
+    description='Simulates open-loop control of a TurtleBot.',
+    license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
