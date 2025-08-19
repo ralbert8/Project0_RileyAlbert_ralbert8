@@ -5,113 +5,165 @@ from nav_msgs.msg import Odometry
 import matplotlib.pyplot as plt
 
 class openLoop(Node):
-    # Initialize tb_openLoop Node
+
+    """
+    A ROS2 node for open-loop velocity control of a turtlebot using a trapezoidal velocity profile.
+
+    The robot will accelerate, move at a constant speed, and decelerate over fixed time/distance,
+    and log its position from odometry data and plot.
+    """
+
+
+    
     def __init__(self):
+
+        """
+        Initializes the node, sets up publishers, subscribers, and timing, and configures movement
+        profile.
+        """
+
+        # Inherit Node capabilities
         super().__init__('tb_openLoop')
 
-        # Velocity Command Publisher
+        # Create velocity command publisher
         self.velocity_publisher = self.create_publisher(Twist, '/cmd_vel', 100)
 
-        # Odometry Data Subscriber
+        # Create odometry data subscriber
         self.create_subscription(Odometry, '/odom', self.odometry_cb, 100)
 
-        # Define Rate for Publishing Velocity Commands
+        # Create timer for calling the move function
         self.timer = self.create_timer(0.01, self.move)
 
-        # Create a Twist Message to Store Velocity Commands
+        # Create twist message for velocity commands
         self.vel_msg = Twist()
 
-        # Initialize Pose vs. Time Data
+        # Store position and time data for plotting
         self.positions = []
         self.times = []
         self.start_time = None
         self.current_position = 0.0
 
-        # Define Variables for Movement Using a (1/4, 1/2, 1/4) Trapezoidal Velocity Profile
-        self.total_distance = 5.0  # [m]
-        self.total_time = 10.0  # [s]
-        self.acceleration_time = self.total_time / 4  # [s]
-        self.deceleration_time = self. total_time / 4  # [s]
+        # Trapezoidal velocity profile parameters
+        self.total_distance = 5.0                      # Total distance to travel [m]
+        self.total_time = 10.0                         # Total time of motion [s]
+        self.acceleration_time = self.total_time / 4   # Time to accelerate [s]
+        self.deceleration_time = self. total_time / 4  # Time to decelerate [s]
 
-    # Define Odometry Callback Function for Storing Pose vs. Time Data
+
+    
     def odometry_cb(self, data):
-        # Gathering One-Dimensional Pose Data in X Direction
+
+        """
+        Callback for `/odom` subscription. Stores robot's current x-position over time.
+
+        Parameters:
+            data (nav_msgs.msg.Odometry): Odometry message containing robot pose.
+        """
+        
+        # Extract x-position from odometry
         self.current_position = data.pose.pose.position.x
 
         if self.start_time is not None:
-            # Get Elapsed Simulation Time
+            
+            # Compute elapsed time
             elapsed_time = self.get_clock().now().seconds_nanoseconds()[0] - self.start_time
             
-            # Append Current Pose Data
+            # Store position and time for plottting
             self.positions.append(self.current_position)
-
-            # Append Current Time Data
             self.times.append(elapsed_time)
 
-    # Define Move Function
+
+    
     def move(self):
 
-        max_velocity_time = self.total_time / 2 # [s]
+        """
+        Controls robot motion using a trapezoidal velocity profile.
+        Publishes velocity commands and stops the robot after the total time.
+        """
 
-        # Calculate the Max Velocity from Averaging Velocity over Accel and Decel Times
+        # Compute time at max velocity
+        max_velocity_time = self.total_time / 2
+
+        # Cpmpute the required max velocity
         max_velocity = (4 * self.total_distance) / (3 * self. total_time)
 
-        # Start Timing for Simulation
+        # Compute elapsed time
         elapsed_time = self.get_clock().now().seconds_nanoseconds()[0] - self.start_time
 
-        # Accelerate Robot
+        # Determine velocity based on elapsed time and motion phase
         if elapsed_time < self.acceleration_time:
-            velocity = max_velocity * (elapsed_time / self.acceleration_time) # [m/s]
 
-        # Maintain Max Velocity
+            # Acceleration phase
+            velocity = max_velocity * (elapsed_time / self.acceleration_time)
+
         elif elapsed_time < self.acceleration_time + max_velocity_time:
-            velocity = max_velocity # [m/s]
 
-        # Decelerate Robot
+            # Constant velocity phase
+            velocity = max_velocity
+
         else:
+
+            # Deceleration phase
             remaining_time = self.total_time - elapsed_time
             velocity = max_velocity * (remaining_time / self.deceleration_time) # [m/s]
 
-        # Set Linear Velocity in X Direction and Restrict Rotation Around Z
+        # Set linear x velocity and zero angular velocity
         self.vel_msg.linear.x = velocity
         self.vel_msg.angular.z = 0.0 
 
-        # Publish Velocity Command
+        # Publish velocity command
         self.velocity_publisher.publish(self.vel_msg)
 
-        # Stop Robot and Plot Pose vs. Time at Simulation End
+        # Stop robot and plot if motion is complete
         if elapsed_time >= self.total_time:
             self.stop()
             self.plot_pose()
             rclpy.shutdown()
 
-    # Define Function to Stop Robot
+
+    
     def stop(self):
-        # Set Linear Velocity in X Direction to Zero and Publish
+
+        """
+        Stops the robot by sending zero velocity.
+        """
+        
         self.vel_msg.linear.x = 0.0
         self.velocity_publisher.publish(self.vel_msg)
 
-    # Define Function to Plot Pose vs. Time
+
+    
     def plot_pose(self):
-        # Plot Time on X and Pose on Y
+
+        """
+        Plots the recorded robot position vs. time.
+        """
+
         plt.plot(self.times, self.positions)
 
-        # Set Axis Bounds Using Total Time and Distance
-        plt.xlim(0, self.total_time)  # Time from 0 to total_time seconds
-        plt.ylim(0, self.total_distance)  # Position from 0 to total_distance meters
+        plt.xlim(0, self.total_time)
+        plt.ylim(0, self.total_distance)
 
-        # Set Plot Visuals
         plt.xlabel('Time [s]')
         plt.ylabel('Position [m]')
         plt.title('Robot Pose vs. Time')
         plt.grid(True)
         plt.show()
 
+
+
 def main(args=None):
+
+    """
+    Entry point of script. Initializes and spins ROS2 node.
+    """
+    
     rclpy.init(args=args)
     node = openLoop()
     node.start_time = node.get_clock().now().seconds_nanoseconds()[0]
     rclpy.spin(node)
+
+
 
 if __name__ == '__main__':
     main()
