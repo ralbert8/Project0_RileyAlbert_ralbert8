@@ -30,7 +30,7 @@ This package contains two main scripts.
 
 ## 🧰 Dependencies
 
-Ensure you have the followign installed:
+Ensure you have the following installed:
 
 - ROS2 Galactic
 - `turtlebot3_gazebo`
